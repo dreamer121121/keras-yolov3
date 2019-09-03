@@ -17,7 +17,7 @@ def _main():
     annotation_path = 'train.txt'
     log_dir = 'logs/000/'
     classes_path = 'model_data/voc_classes.txt'
-    anchors_path = 'model_data/yolo_anchors.txt'
+    anchors_path = 'model_data/yolo_anchors.txt' #通过keans聚类生成。
     class_names = get_classes(classes_path)
     num_classes = len(class_names)
     anchors = get_anchors(anchors_path)
