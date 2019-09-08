@@ -106,3 +106,4 @@ ENV/
 
 # mypy
 .mypy_cache/
+/VOCtrainval_11-May-2012
