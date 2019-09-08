@@ -8,15 +8,21 @@ class YOLO_Kmeans:
         self.filename = "2012_train.txt"
 
     def iou(self, boxes, clusters):  # 1 box -> k clusters
+        """
+        计算每个box与k个聚类中心的iou
+        :param boxes:
+        :param clusters:
+        :return:
+        """
         n = boxes.shape[0]
         k = self.cluster_number
 
-        box_area = boxes[:, 0] * boxes[:, 1]
+        box_area = boxes[:, 0] * boxes[:, 1] #n行1列
         box_area = box_area.repeat(k)
         box_area = np.reshape(box_area, (n, k))
 
         cluster_area = clusters[:, 0] * clusters[:, 1]
-        cluster_area = np.tile(cluster_area, [1, n])
+        cluster_area = np.tile(cluster_area, [1, n]) #repeate cluster_area n times
         cluster_area = np.reshape(cluster_area, (n, k))
 
         box_w_matrix = np.reshape(boxes[:, 0].repeat(k), (n, k))
@@ -25,10 +31,10 @@ class YOLO_Kmeans:
 
         box_h_matrix = np.reshape(boxes[:, 1].repeat(k), (n, k))
         cluster_h_matrix = np.reshape(np.tile(clusters[:, 1], (1, n)), (n, k))
-        min_h_matrix = np.minimum(cluster_h_matrix, box_h_matrix)
-        inter_area = np.multiply(min_w_matrix, min_h_matrix)
+        min_h_matrix = np.minimum(cluster_h_matrix, box_h_matrix) #找出cluster_h_matrix中与box_h_matrix的
+        inter_area = np.multiply(min_w_matrix, min_h_matrix) #并不是矩阵乘法只是相对应位置上的元素相乘。
 
-        result = inter_area / (box_area + cluster_area - inter_area)
+        result = inter_area / (box_area + cluster_area - inter_area) # 计算IOU
         return result
 
     def avg_iou(self, boxes, clusters):
@@ -43,15 +49,13 @@ class YOLO_Kmeans:
         clusters = boxes[np.random.choice(
             box_number, k, replace=False)]  # init k clusters
         while True:
-
-            distances = 1 - self.iou(boxes, clusters)
-
-            current_nearest = np.argmin(distances, axis=1)
+            distances = 1 - self.iou(boxes, clusters) #distance
+            current_nearest = np.argmin(distances, axis=1) #返回最小值的索引判断每一个样本距离哪一个cluster最近。
             if (last_nearest == current_nearest).all():
                 break  # clusters won't change
             for cluster in range(k):
                 clusters[cluster] = dist(  # update clusters
-                    boxes[current_nearest == cluster], axis=0)
+                    boxes[current_nearest == cluster], axis=0) #axis=0是按行，axis=1是按列
 
             last_nearest = current_nearest
 
