@@ -110,7 +110,7 @@ class YOLO_Kmeans:
     def txt2clusters(self):
         all_boxes = self.txt2boxes()
         result = self.kmeans(all_boxes, k=self.cluster_number)
-        result = result[np.lexsort(result.T[0, None])]
+        result = result[np.lexsort(result.T[0, None])] #排序类似于argsort()
         self.result2txt(result)
         print("K anchors:\n {}".format(result))
         print("Accuracy: {:.2f}%".format(

@@ -19,8 +19,8 @@ def DarknetConv2D(*args, **kwargs):
     """Wrapper to set Darknet parameters for Convolution2D."""
     darknet_conv_kwargs = {'kernel_regularizer': l2(5e-4)}
     darknet_conv_kwargs['padding'] = 'valid' if kwargs.get('strides')==(2,2) else 'same'
-    darknet_conv_kwargs.update(kwargs)
-    return Conv2D(*args, **darknet_conv_kwargs)
+    darknet_conv_kwargs.update(kwargs) #更新字典操作
+    return Conv2D(*args, **darknet_conv_kwargs)#keras的二维卷积操作
 
 def DarknetConv2D_BN_Leaky(*args, **kwargs):
     """Darknet Convolution2D followed by BatchNormalization and LeakyReLU."""
@@ -68,13 +68,17 @@ def make_last_layers(x, num_filters, out_filters):
 
 
 def yolo_body(inputs, num_anchors, num_classes):
-    """Create YOLO_V3 model CNN body in Keras."""
-    darknet = Model(inputs, darknet_body(inputs))
+    """
+    Create YOLO_V3 model CNN body in Keras.
+    num_anchors=3,在一个尺度的特征图上取的anchors的数量
+    """
+    darknet = Model(inputs, darknet_body(inputs)) #构建darknet
     x, y1 = make_last_layers(darknet.output, 512, num_anchors*(num_classes+5))
-
+    #在coco数据集上最终的输出的channel为3*（5+80）= 255
+    #输出为13X13X255
     x = compose(
             DarknetConv2D_BN_Leaky(256, (1,1)),
-            UpSampling2D(2))(x)
+            UpSampling2D(2))(x) #上采样
     x = Concatenate()([x,darknet.layers[152].output])
     x, y2 = make_last_layers(x, 256, num_anchors*(num_classes+5))
 

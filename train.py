@@ -14,7 +14,7 @@ from yolo3.utils import get_random_data
 
 
 def _main():
-    annotation_path = 'train.txt'
+    annotation_path = '2007_train.txt'
     log_dir = 'logs/000/'
     classes_path = 'model_data/voc_classes.txt'
     anchors_path = 'model_data/yolo_anchors.txt' #通过keans聚类生成。
@@ -22,7 +22,7 @@ def _main():
     num_classes = len(class_names)
     anchors = get_anchors(anchors_path)
 
-    input_shape = (416,416) # multiple of 32, hw
+    input_shape = (416,416) # multiple of 32, hw，输入为416X416X3
 
     is_tiny_version = len(anchors)==6 # default setting
     if is_tiny_version:
@@ -30,13 +30,13 @@ def _main():
             freeze_body=2, weights_path='model_data/tiny_yolo_weights.h5')
     else:
         model = create_model(input_shape, anchors, num_classes,
-            freeze_body=2, weights_path='model_data/yolo_weights.h5') # make sure you know what you freeze
+            freeze_body=2, weights_path='model_data/darknet53_weights.h5') # make sure you know what you freeze
 
-    logging = TensorBoard(log_dir=log_dir)
-    checkpoint = ModelCheckpoint(log_dir + 'ep{epoch:03d}-loss{loss:.3f}-val_loss{val_loss:.3f}.h5',
+    logging = TensorBoard(log_dir=log_dir) #keras的库函数对原生tensorflow的封装。
+    checkpoint = ModelCheckpoint(log_dir + 'ep{epoch:03d}-loss{loss:.3f}-val_loss{val_loss:.3f}.h5', #keras的库函数用于在每一个epoch后保存模型。
         monitor='val_loss', save_weights_only=True, save_best_only=True, period=3)
-    reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=3, verbose=1)
-    early_stopping = EarlyStopping(monitor='val_loss', min_delta=0, patience=10, verbose=1)
+    reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=3, verbose=1)#当评价指标不再进一步提升时减小学习速率。
+    early_stopping = EarlyStopping(monitor='val_loss', min_delta=0, patience=10, verbose=1)#当一个指标不再进步时停止训练。
 
     val_split = 0.1
     with open(annotation_path) as f:
@@ -44,7 +44,7 @@ def _main():
     np.random.seed(10101)
     np.random.shuffle(lines)
     np.random.seed(None)
-    num_val = int(len(lines)*val_split)
+    num_val = int(len(lines)*val_split) #验证集数量。
     num_train = len(lines) - num_val
 
     # Train with frozen layers first, to get a stable loss.
@@ -105,10 +105,10 @@ def get_anchors(anchors_path):
 def create_model(input_shape, anchors, num_classes, load_pretrained=True, freeze_body=2,
             weights_path='model_data/yolo_weights.h5'):
     '''create the training model'''
-    K.clear_session() # get a new session
+    K.clear_session() # get a new session，建立一个新的会话
     image_input = Input(shape=(None, None, 3))
     h, w = input_shape
-    num_anchors = len(anchors)
+    num_anchors = len(anchors) #总共9个anchor但是分布在三个不同尺度的特征图上
 
     y_true = [Input(shape=(h//{0:32, 1:16, 2:8}[l], w//{0:32, 1:16, 2:8}[l], \
         num_anchors//3, num_classes+5)) for l in range(3)]
@@ -117,7 +117,7 @@ def create_model(input_shape, anchors, num_classes, load_pretrained=True, freeze
     print('Create YOLOv3 model with {} anchors and {} classes.'.format(num_anchors, num_classes))
 
     if load_pretrained:
-        model_body.load_weights(weights_path, by_name=True, skip_mismatch=True)
+        model_body.load_weights(weights_path, by_name=True, skip_mismatch=True) #载入模型权重
         print('Load weights {}.'.format(weights_path))
         if freeze_body in [1, 2]:
             # Freeze darknet53 body or freeze all but 3 output layers.
@@ -163,19 +163,19 @@ def create_tiny_model(input_shape, anchors, num_classes, load_pretrained=True, f
     return model
 
 def data_generator(annotation_lines, batch_size, input_shape, anchors, num_classes):
-    '''data generator for fit_generator'''
-    n = len(annotation_lines)
+    '''data generator for fit_generator 一次生成一个batch的数据'''
+    n = len(annotation_lines)#样本的总数
     i = 0
     while True:
         image_data = []
         box_data = []
-        for b in range(batch_size):
+        for b in range(batch_size):#取一个batch_size的数据
             if i==0:
-                np.random.shuffle(annotation_lines)
-            image, box = get_random_data(annotation_lines[i], input_shape, random=True)
+                np.random.shuffle(annotation_lines) #打乱顺序
+            image, box = get_random_data(annotation_lines[i], input_shape, random=True) #处理一条记录
             image_data.append(image)
             box_data.append(box)
-            i = (i+1) % n
+            i = (i+1) % n #？？
         image_data = np.array(image_data)
         box_data = np.array(box_data)
         y_true = preprocess_true_boxes(box_data, input_shape, anchors, num_classes)
