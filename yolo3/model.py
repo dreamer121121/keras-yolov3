@@ -74,8 +74,7 @@ def yolo_body(inputs, num_anchors, num_classes):
     """
     darknet = Model(inputs, darknet_body(inputs)) #构建darknet
     x, y1 = make_last_layers(darknet.output, 512, num_anchors*(num_classes+5))
-    print("x.shape:",x.shape)
-    print("y1.shape:",y1.shape)
+
     #在voc数据集上最终的输出的channel为3*（5+20）= 75
     #输出为13X13X75
     x = compose(
@@ -135,8 +134,7 @@ def yolo_head(feats, anchors, num_classes, input_shape, calc_loss=False):
         [1, grid_shape[1], 1, 1]) #平铺函数
     grid_x = K.tile(K.reshape(K.arange(0, stop=grid_shape[1]), [1, -1, 1, 1]),
         [grid_shape[0], 1, 1, 1])
-    print("grid_x:",grid_x)
-    print("grid_Y:",grid_y)
+
     grid = K.concatenate([grid_x, grid_y])
     grid = K.cast(grid, K.dtype(feats))
 
@@ -265,7 +263,6 @@ def preprocess_true_boxes(true_boxes, input_shape, anchors, num_classes):
     #将GT坐标（xmin,ymin,xmax,ymax）转换为(xc,yc,w,h)此时还是绝对坐标
     boxes_xy = (true_boxes[..., 0:2] + true_boxes[..., 2:4]) // 2
     boxes_wh = true_boxes[..., 2:4] - true_boxes[..., 0:2]
-    print("GT_wh.shape:",boxes_wh.shape) #（N，20,5）
 
     #将上一步得到的boxes_xy和boxes_wh转换为相对坐标，采用的方法是除以图像的大小。
     # true_box存储的为[GT_x,GT_y,GT_w,GT_h，classID]
@@ -293,7 +290,6 @@ def preprocess_true_boxes(true_boxes, input_shape, anchors, num_classes):
     anchor_maxes = anchors / 2.
     anchor_mins = -anchor_maxes
     valid_mask = boxes_wh[..., 0]>0
-    print("valid_mask:",valid_mask.shape) #(N,20)
 
     #此部分代码用于计算IOU，并给anchor分配GT，非常重要！！
     for b in range(m):
@@ -314,11 +310,10 @@ def preprocess_true_boxes(true_boxes, input_shape, anchors, num_classes):
         box_area = wh[..., 0] * wh[..., 1]
         anchor_area = anchors[..., 0] * anchors[..., 1]
         iou = intersect_area / (box_area + anchor_area - intersect_area) #iou.shape(num_GT,9)
-        print("iou.shape:",iou.shape)
+
         # print("iou:",iou)
         # Find best anchor for each true box。为每一个GT分配anchor
         best_anchor = np.argmax(iou, axis=-1) #（num_GT,1）
-        print("best_anchor:",best_anchor)
 
         for t, n in enumerate(best_anchor):
             for l in range(num_layers): #num_layers=3,表示3个输出的特征图。
@@ -383,7 +378,6 @@ def box_iou(b1, b2):
 
 
 def yolo_loss(args, anchors, num_classes, ignore_thresh=.5, print_loss=False):
-    print("------yolo loss--------")
     '''Return yolo_loss tensor
 
     Parameters
@@ -401,9 +395,7 @@ def yolo_loss(args, anchors, num_classes, ignore_thresh=.5, print_loss=False):
     '''
     num_layers = len(anchors)//3 # default setting
     yolo_outputs = args[:num_layers]
-    print("yolo_outputs:",yolo_outputs)
     y_true = args[num_layers:]
-    print("y_true:",y_true)
     anchor_mask = [[6,7,8], [3,4,5], [0,1,2]] if num_layers==3 else [[3,4,5], [1,2,3]]
     input_shape = K.cast(K.shape(yolo_outputs[0])[1:3] * 32, K.dtype(y_true[0]))
     grid_shapes = [K.cast(K.shape(yolo_outputs[l])[1:3], K.dtype(y_true[0])) for l in range(num_layers)]
@@ -422,8 +414,6 @@ def yolo_loss(args, anchors, num_classes, ignore_thresh=.5, print_loss=False):
         # Darknet raw box to calculate loss.
         #重点：！！！！!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!,将y_true中的x,y转换为对应于当前grid左上角的x,y的距离
         raw_true_xy = y_true[l][..., :2]*grid_shapes[l][::-1] - grid# raw_true_xy才是真正的label
-        print("grid:",grid)
-        print("raw_true_xy:",raw_true_xy)
         raw_true_wh = K.log(y_true[l][..., 2:4] / anchors[anchor_mask[l]] * input_shape[::-1])
         raw_true_wh = K.switch(object_mask, raw_true_wh, K.zeros_like(raw_true_wh)) # avoid log(0)=-inf
         box_loss_scale = 2 - y_true[l][...,2:3]*y_true[l][...,3:4]

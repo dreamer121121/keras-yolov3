@@ -21,7 +21,6 @@ def _main():
     class_names = get_classes(classes_path)
     num_classes = len(class_names)
     anchors = get_anchors(anchors_path)
-    print("anchors:",anchors)
 
     input_shape = (416,416) # multiple of 32, hw，输入为416X416X3
 
@@ -115,7 +114,6 @@ def create_model(input_shape, anchors, num_classes, load_pretrained=True, freeze
     #y_true是一个列表[]，[shape(?,13,13,3,25),shape(?,26,26,3,25),shape(?,52,52,3,25)]
     y_true = [Input(shape=(h//{0:32, 1:16, 2:8}[l], w//{0:32, 1:16, 2:8}[l], \
         num_anchors//3, num_classes+5)) for l in range(3)] #利用列表解析式
-    print("y_true:",y_true)
 
     #image_input:[N,w,h,c],return [y1(N,13,13,75),y2(N,26,26,75),y3(N,52,52,75)]
     model_body = yolo_body(image_input, num_anchors//3, num_classes)
@@ -183,13 +181,8 @@ def data_generator(annotation_lines, batch_size, input_shape, anchors, num_class
             i = (i+1) % n #？？
         image_data = np.array(image_data) #读取的图像数据
         box_data = np.array(box_data) #读取的GT,此时的box_data还是采用的绝对坐标
-        # print("GT.shape",box_data.shape) #(N.20,5) 20表示单张图像上最大的GT数量为20,5（xmin,ymin,xmax,ymax,classid）
-        # print("GT:",box_data) #且此时GT的坐标也已经进行了尺度缩放。
-        # print("image_data.shape",image_data.shape) #(N,416,416,3) ，此时已经将原图像转换成了416X416的大小
+
         y_true = preprocess_true_boxes(box_data, input_shape, anchors, num_classes) #label列表
-        # print("y_true:",len(y_true))
-        # print("y_true[0]:",y_true[0].shape)#(N,grid,gird,3,25)
-        # print("y_true[1]:",y_true[1].shape)#(N,grid,grid,3,25)
         yield [image_data, *y_true], np.zeros( batch_size) #变成一个生成器
 
 def data_generator_wrapper(annotation_lines, batch_size, input_shape, anchors, num_classes):
