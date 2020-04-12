@@ -420,7 +420,7 @@ def yolo_loss(args, anchors, num_classes, ignore_thresh=.5, print_loss=False):
         pred_box = K.concatenate([pred_xy, pred_wh])
 
         # Darknet raw box to calculate loss.
-        #重点：！！！！
+        #重点：！！！！!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!,将y_true中的x,y转换为对应于当前grid左上角的x,y的距离
         raw_true_xy = y_true[l][..., :2]*grid_shapes[l][::-1] - grid# raw_true_xy才是真正的label
         print("grid:",grid)
         print("raw_true_xy:",raw_true_xy)
