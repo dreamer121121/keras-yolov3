@@ -38,7 +38,6 @@ def get_random_data(annotation_line, input_shape, random=True, max_boxes=20, jit
     line = annotation_line.split()
     if not line:
         print("annotation_line: ",annotation_line)
-    print("Image_path",line[0])
     image = Image.open(line[0])
     # image.show()
     iw, ih = image.size #图像真实的大小
