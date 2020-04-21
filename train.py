@@ -1,7 +1,7 @@
 """
 Retrain the YOLO model for your own dataset.
 """
-
+import os
 import numpy as np
 import keras.backend as K
 from keras.layers import Input, Lambda
@@ -50,7 +50,7 @@ def _main():
 
     # Train with frozen layers first, to get a stable loss.
     # Adjust num epochs to your dataset. This step is enough to obtain a not bad model.
-    if True:
+    if os.path.exists(log_dir+'trained_weights_stage_1.h5'):
         model.compile(optimizer=Adam(lr=1e-3), loss={
             # use custom yolo_loss Lambda layer.
             'yolo_loss': lambda y_true, y_pred: y_pred})
@@ -69,6 +69,8 @@ def _main():
     # Unfreeze and continue training, to fine-tune.
     # Train longer if the result is not good.
     if True:
+        print('载入第一阶段训练的模型')
+        model.load_weights(log_dir+'trained_weights_stage_1.h5')
         for i in range(len(model.layers)):
             model.layers[i].trainable = True
         model.compile(optimizer=Adam(lr=1e-4), loss={'yolo_loss': lambda y_true, y_pred: y_pred}) # recompile to apply the change
